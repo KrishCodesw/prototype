@@ -30,6 +30,12 @@ export function LoginForm({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
+    console.log("URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log(
+      "PUB KEY:",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 12)
+    );
+
     setIsLoading(true);
     setError(null);
 
