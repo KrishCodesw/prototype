@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Camera, MapPin, Upload, Flag, X } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { createClient } from '@/lib/supabase/client'
 
 const ISSUE_CATEGORIES = [
   { value: 'pothole', label: 'Pothole', color: 'bg-red-100 text-red-800' },
@@ -36,9 +37,21 @@ export function ReportForm() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [cameraActive, setCameraActive] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const supabase = createClient()
 
-  // Get geolocation and fetch nearby issues
+  // Get current user and geolocation
   useEffect(() => {
+    // Get current user email
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email) {
+        setUserEmail(user.email)
+      }
+    }
+    getCurrentUser()
+
+    // Get geolocation and fetch nearby issues
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const latitude = pos.coords.latitude
@@ -133,6 +146,7 @@ export function ReportForm() {
           latitude: lat,
           longitude: lng,
           images: imageUrl ? [imageUrl] : [],
+          reporterEmail: userEmail,
         }),
       })
       

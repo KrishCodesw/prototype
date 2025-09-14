@@ -228,7 +228,7 @@ export default function IssuesListClient() {
           </div>
           
           {/* Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
@@ -275,7 +275,7 @@ export default function IssuesListClient() {
       </Card>
 
       {/* Issues Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
         {filteredIssues.map((issue) => {
           const distance = userLocation 
             ? calculateDistance(userLocation.lat, userLocation.lng, issue.latitude, issue.longitude)

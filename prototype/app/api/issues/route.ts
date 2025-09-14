@@ -84,3 +84,56 @@ export async function POST(req: Request) {
   return NextResponse.json({ id: issue.id })
 }
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const limit = parseInt(searchParams.get('limit') || '50')
+  const statusFilter = searchParams.get('status')
+  
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!,
+  )
+  
+  try {
+    let query = supabase
+      .from('issues')
+      .select(`
+        *,
+        images:issue_images(url),
+        votes(count),
+        status_changes:status_history(
+          from_status,
+          to_status,
+          changed_at,
+          notes,
+          changed_by,
+          profiles!status_history_changed_by_fkey(display_name)
+        )
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    
+    if (statusFilter && statusFilter !== 'all') {
+      query = query.eq('status', statusFilter)
+    }
+    
+    const { data: issues, error } = await query
+    
+    if (error) {
+      console.error('Issues fetch error:', error)
+      return NextResponse.json({ error: 'Failed to fetch issues' }, { status: 500 })
+    }
+    
+    // Process vote counts to be numbers instead of objects
+    const processedIssues = (issues || []).map(issue => ({
+      ...issue,
+      vote_count: issue.votes?.[0]?.count || 0
+    }))
+    
+    return NextResponse.json(processedIssues)
+  } catch (error) {
+    console.error('Issues error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
