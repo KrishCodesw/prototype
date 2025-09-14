@@ -334,6 +334,7 @@ export function ReportForm() {
                           <Upload className="h-4 w-4 mr-2" />
                           Upload
                         </Button>
+                        gi
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-500">
                         Note: Camera requires HTTPS in production
