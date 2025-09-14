@@ -35,6 +35,8 @@ export function LoginForm({
       "PUB KEY:",
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.slice(0, 12)
     );
+    console.log("Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+   console.log("Supabase Key exists:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
     setIsLoading(true);
     setError(null);
@@ -58,22 +60,51 @@ export function LoginForm({
     const supabase = createClient();
     setIsOAuthLoading(true);
     setError(null);
+    
     try {
+      // Check if environment variables are set
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        throw new Error("Supabase configuration missing. Please check environment variables.");
+      }
+      
       const origin = window.location.origin;
       const redirectTo = `${origin}/auth/callback`;
-      const { error } = await supabase.auth.signInWithOAuth({
+      
+      console.log("Attempting Google OAuth with redirect:", redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
           queryParams: {
             prompt: "select_account",
+            access_type: "offline",
           },
         },
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("OAuth error:", error);
+        throw error;
+      }
+      
+      console.log("OAuth initiated successfully:", data);
       // The browser will redirect; no further action needed
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      console.error("Google login error:", error);
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("configuration")) {
+          errorMessage = "Google authentication is not properly configured. Please contact support.";
+        } else if (error.message.includes("network")) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
       setIsOAuthLoading(false);
     }
   };

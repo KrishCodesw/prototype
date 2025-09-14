@@ -83,30 +83,50 @@ export function ReportForm() {
         throw new Error('Camera not supported on this device')
       }
       
+      setError(null) // Clear any previous errors
+      
       // Request camera access with proper constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 }
         } 
       })
       
       videoRef.current.srcObject = stream
-      setCameraActive(true)
-      setError(null) // Clear any previous errors
+      
+      // Wait for video to be ready
+      videoRef.current.onloadedmetadata = () => {
+        setCameraActive(true)
+      }
+      
     } catch (err: any) {
       console.error('Error accessing camera:', err)
       let errorMessage = 'Could not access camera. Please try uploading an image instead.'
       
       if (err.name === 'NotAllowedError') {
-        errorMessage = 'Camera access denied. Please allow camera access and try again.'
+        errorMessage = 'Camera access denied. Please allow camera access in your browser settings and try again.'
       } else if (err.name === 'NotFoundError') {
-        errorMessage = 'No camera found on this device.'
+        errorMessage = 'No camera found on this device. Please use the upload option instead.'
       } else if (err.name === 'NotSupportedError') {
-        errorMessage = 'Camera not supported on this device.'
+        errorMessage = 'Camera not supported on this device. Please use the upload option instead.'
       } else if (err.name === 'NotReadableError') {
-        errorMessage = 'Camera is already in use by another application.'
+        errorMessage = 'Camera is already in use by another application. Please close other camera apps and try again.'
+      } else if (err.name === 'OverconstrainedError') {
+        errorMessage = 'Camera constraints not supported. Trying with basic settings...'
+        // Try again with basic constraints
+        try {
+          const basicStream = await navigator.mediaDevices.getUserMedia({ video: true })
+          videoRef.current.srcObject = basicStream
+          videoRef.current.onloadedmetadata = () => {
+            setCameraActive(true)
+          }
+          setError(null)
+          return
+        } catch (basicErr) {
+          errorMessage = 'Camera access failed. Please use the upload option instead.'
+        }
       }
       
       setError(errorMessage)
@@ -220,7 +240,7 @@ export function ReportForm() {
 
       {/* Nearby Issues Warning */}
       {nearbyIssues.length > 0 && (
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950">
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50">
           <CardHeader>
             <CardTitle className="text-sm text-orange-800 dark:text-orange-200">⚠️ Similar Issues Nearby</CardTitle>
             <CardDescription className="text-orange-700 dark:text-orange-300">
@@ -230,9 +250,9 @@ export function ReportForm() {
           <CardContent>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {nearbyIssues.slice(0, 3).map((issue) => (
-                <div key={issue.id} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">#{issue.id}</p>
-                  <p className="text-sm text-gray-900 dark:text-gray-100">{issue.description?.substring(0, 100)}...</p>
+                <div key={issue.id} className="p-2 bg-background/80 dark:bg-card rounded border border-border">
+                  <p className="text-xs text-muted-foreground">#{issue.id}</p>
+                  <p className="text-sm text-foreground">{issue.description?.substring(0, 100)}...</p>
                 </div>
               ))}
             </div>
@@ -334,7 +354,6 @@ export function ReportForm() {
                           <Upload className="h-4 w-4 mr-2" />
                           Upload
                         </Button>
-                        gi
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-500">
                         Note: Camera requires HTTPS in production
