@@ -1,16 +1,13 @@
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
+// components/home-page-content.tsx
+"use client";
+
 import IssuesMap from "@/components/issues-map";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { Footer } from "@/components/footer";
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+export function HomePageContent() {
   return (
     <main className="min-h-screen flex flex-col">
-      <Navigation user={user} />
       <div className="flex-1 w-full flex flex-col gap-8 items-center">
         <div className="flex-1 flex flex-col gap-8 max-w-5xl p-5 w-full">
           {/* Hero Section */}
@@ -37,12 +34,10 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-
           {/* Map Section */}
           <div className="w-full">
             <IssuesMap className="w-full" />
           </div>
-
           {/* Quick Stats or Features */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <div className="text-center p-6 border border-border rounded-lg">

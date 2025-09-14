@@ -1,10 +1,15 @@
 import { Navigation } from '@/components/navigation'
 import { ReportForm } from '@/components/report-form'
+import { createClient } from '@/lib/supabase/server'
 
-export default function ReportPage() {
+export default async function ReportPage() {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const user = data?.claims
+
   return (
     <main className="min-h-screen flex flex-col">
-      <Navigation />
+      <Navigation user={user} />
       <div className="flex-1 max-w-2xl mx-auto p-6 space-y-6 w-full">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Report an Issue</h1>
