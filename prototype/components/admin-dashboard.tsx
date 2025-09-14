@@ -1,338 +1,403 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, 
-  LineChart, Line, ResponsiveContainer, Area, AreaChart 
-} from 'recharts'
-import { 
-  TrendingUp, AlertTriangle, CheckCircle, Clock, Users, 
-  Flag, MessageSquare, Settings, FileText, Plus, Megaphone,
-  UserCheck, Building, CheckSquare, Edit, Trash2, Eye, Search,
-  Filter, Download, MoreHorizontal, Shield, AlertCircle
-} from 'lucide-react'
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from "recharts";
+import {
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Users,
+  Flag,
+  MessageSquare,
+  Settings,
+  FileText,
+  Plus,
+  Megaphone,
+  UserCheck,
+  Building,
+  CheckSquare,
+  Edit,
+  Trash2,
+  Eye,
+  Search,
+  Filter,
+  Download,
+  MoreHorizontal,
+  Shield,
+  AlertCircle,
+} from "lucide-react";
 
 type AdminStats = {
-  total_issues: number
-  active_issues: number
-  in_progress_issues: number
-  under_review_issues: number
-  closed_issues: number
-  flagged_issues: number
-  total_votes: number
-  issues_by_category: Record<string, number>
-  issues_by_status: Record<string, number>
-  recent_issues_trend: { date: string; count: number }[]
-}
+  total_issues: number;
+  active_issues: number;
+  in_progress_issues: number;
+  under_review_issues: number;
+  closed_issues: number;
+  flagged_issues: number;
+  total_votes: number;
+  issues_by_category: Record<string, number>;
+  issues_by_status: Record<string, number>;
+  recent_issues_trend: { date: string; count: number }[];
+};
 
 type Issue = {
-  id: number
-  description: string
-  status: string
-  tags: string[]
-  flagged: boolean
-  created_at: string
-  reporter_email: string
-  vote_count: number
-  images: { url: string }[]
+  id: number;
+  description: string;
+  status: string;
+  tags: string[];
+  flagged: boolean;
+  created_at: string;
+  reporter_email: string;
+  vote_count?: { count: number }[] | null;
+  images: { url: string }[];
   assignment?: {
-    department: { name: string }
-    assignee: { display_name: string }
-    notes: string
-  }
-}
+    department: { name: string };
+    assignee: { display_name: string };
+    notes: string;
+  };
+};
 
 type User = {
-  id: string
-  display_name: string
-  role: string
-  department_id: number | null
-  created_at: string
-  issues_count: number
-  votes_count: number
-  announcements_count: number
-}
+  id: string;
+  display_name: string;
+  role: string;
+  department_id: number | null;
+  created_at: string;
+  issues_count: number;
+  votes_count: number;
+  announcements_count: number;
+};
 
 type Department = {
-  id: number
-  name: string
-  description?: string
-  issues_count: number
-  officials_count: number
-  regions_count: number
-  assignments_count: number
-}
+  id: number;
+  name: string;
+  description?: string;
+  issues_count: number;
+  officials_count: number;
+  regions_count: number;
+  assignments_count: number;
+};
 
 const STATUS_COLORS = {
-  active: '#ef4444',
-  under_progress: '#f59e0b', 
-  under_review: '#3b82f6',
-  closed: '#10b981'
-}
+  active: "#ef4444",
+  under_progress: "#f59e0b",
+  under_review: "#3b82f6",
+  closed: "#10b981",
+};
 
-const PRIORITY_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#f97316']
+const PRIORITY_COLORS = [
+  "#ef4444",
+  "#f59e0b",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f97316",
+];
 
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'All Status' },
-  { value: 'active', label: 'Active' },
-  { value: 'under_progress', label: 'In Progress' },
-  { value: 'under_review', label: 'Under Review' },
-  { value: 'closed', label: 'Closed' }
-]
+  { value: "all", label: "All Status" },
+  { value: "active", label: "Active" },
+  { value: "under_progress", label: "In Progress" },
+  { value: "under_review", label: "Under Review" },
+  { value: "closed", label: "Closed" },
+];
 
 const CATEGORY_OPTIONS = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'pothole', label: 'Pothole' },
-  { value: 'streetlight', label: 'Street Light' },
-  { value: 'sanitation', label: 'Sanitation' },
-  { value: 'water', label: 'Water Issue' },
-  { value: 'traffic', label: 'Traffic Signal' },
-  { value: 'park', label: 'Parks & Recreation' },
-  { value: 'other', label: 'Other' }
-]
+  { value: "all", label: "All Categories" },
+  { value: "pothole", label: "Pothole" },
+  { value: "streetlight", label: "Street Light" },
+  { value: "sanitation", label: "Sanitation" },
+  { value: "water", label: "Water Issue" },
+  { value: "traffic", label: "Traffic Signal" },
+  { value: "park", label: "Parks & Recreation" },
+  { value: "other", label: "Other" },
+];
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null)
-  const [issues, setIssues] = useState<Issue[]>([])
-  const [announcements, setAnnouncements] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [statsLoading, setStatsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'issues' | 'announcements' | 'users' | 'departments'>('overview')
-  
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "issues" | "announcements" | "users" | "departments"
+  >("overview");
+
   // New state for users and departments
-  const [users, setUsers] = useState<User[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
-  const [usersLoading, setUsersLoading] = useState(false)
-  const [departmentsLoading, setDepartmentsLoading] = useState(false)
-  
+  const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+
   // Bulk operations
-  const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set())
-  const [bulkOperationLoading, setBulkOperationLoading] = useState(false)
-  
+  const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set());
+  const [bulkOperationLoading, setBulkOperationLoading] = useState(false);
+
   // User management
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [userRoleFilter, setUserRoleFilter] = useState('all')
-  
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
+
   // Department management
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null)
-  const [showDepartmentForm, setShowDepartmentForm] = useState(false)
-  const [departmentForm, setDepartmentForm] = useState({ name: '', description: '' })
-  
+  const [selectedDepartment, setSelectedDepartment] =
+    useState<Department | null>(null);
+  const [showDepartmentForm, setShowDepartmentForm] = useState(false);
+  const [departmentForm, setDepartmentForm] = useState({
+    name: "",
+    description: "",
+  });
+
   // Filters
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
   // Issue management
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
-  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false)
-  
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+
   // Announcements
-  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false)
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    content: '',
-    type: 'general',
-    priority: 'normal'
-  })
+    title: "",
+    content: "",
+    type: "general",
+    priority: "normal",
+  });
 
   useEffect(() => {
-    fetchStats()
-    fetchIssues()
-    fetchAnnouncements()
-    if (activeTab === 'users') {
-      fetchUsers()
+    fetchStats();
+    fetchIssues();
+    fetchAnnouncements();
+    if (activeTab === "users") {
+      fetchUsers();
     }
-    if (activeTab === 'departments') {
-      fetchDepartments()
+    if (activeTab === "departments") {
+      fetchDepartments();
     }
-  }, [statusFilter, categoryFilter, activeTab, userRoleFilter])
+  }, [statusFilter, categoryFilter, activeTab, userRoleFilter]);
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats')
+      const res = await fetch("/api/admin/stats");
       if (res.ok) {
-        const data = await res.json()
-        setStats(data)
+        const data = await res.json();
+        setStats(data);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error("Error fetching stats:", error);
     } finally {
-      setStatsLoading(false)
+      setStatsLoading(false);
     }
-  }
+  };
 
   const fetchIssues = async () => {
     try {
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') params.set('status', statusFilter)
-      if (categoryFilter !== 'all') params.set('category', categoryFilter)
-      
-      const res = await fetch(`/api/admin/issues?${params}`)
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (categoryFilter !== "all") params.set("category", categoryFilter);
+
+      const res = await fetch(`/api/admin/issues?${params}`);
       if (res.ok) {
-        const data = await res.json()
-        setIssues(data)
+        const data = await res.json();
+        setIssues(data);
       }
     } catch (error) {
-      console.error('Error fetching issues:', error)
+      console.error("Error fetching issues:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchAnnouncements = async () => {
     try {
-      const res = await fetch('/api/admin/announcements')
+      const res = await fetch("/api/admin/announcements");
       if (res.ok) {
-        const data = await res.json()
-        setAnnouncements(data)
+        const data = await res.json();
+        setAnnouncements(data);
       }
     } catch (error) {
-      console.error('Error fetching announcements:', error)
+      console.error("Error fetching announcements:", error);
     }
-  }
+  };
 
-  const updateIssueStatus = async (issueId: number, newStatus: string, notes?: string) => {
-    setStatusUpdateLoading(true)
+  const updateIssueStatus = async (
+    issueId: number,
+    newStatus: string,
+    notes?: string
+  ) => {
+    setStatusUpdateLoading(true);
     try {
       const res = await fetch(`/api/admin/issues/${issueId}/status`, {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, notes })
-      })
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: newStatus, notes }),
+      });
 
       if (res.ok) {
-        await fetchIssues()
-        await fetchStats()
-        setSelectedIssue(null)
+        await fetchIssues();
+        await fetchStats();
+        setSelectedIssue(null);
       }
     } catch (error) {
-      console.error('Error updating issue status:', error)
+      console.error("Error updating issue status:", error);
     } finally {
-      setStatusUpdateLoading(false)
+      setStatusUpdateLoading(false);
     }
-  }
+  };
 
   const createAnnouncement = async () => {
     try {
-      const res = await fetch('/api/admin/announcements', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(announcementForm)
-      })
+      const res = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(announcementForm),
+      });
 
       if (res.ok) {
-        setAnnouncementForm({ title: '', content: '', type: 'general', priority: 'normal' })
-        setShowAnnouncementForm(false)
-        await fetchAnnouncements()
+        setAnnouncementForm({
+          title: "",
+          content: "",
+          type: "general",
+          priority: "normal",
+        });
+        setShowAnnouncementForm(false);
+        await fetchAnnouncements();
       }
     } catch (error) {
-      console.error('Error creating announcement:', error)
+      console.error("Error creating announcement:", error);
     }
-  }
+  };
 
   // New fetch functions
   const fetchUsers = async () => {
-    setUsersLoading(true)
+    setUsersLoading(true);
     try {
-      const params = new URLSearchParams()
-      if (userRoleFilter !== 'all') params.set('role', userRoleFilter)
-      
-      const res = await fetch(`/api/admin/users?${params}`)
+      const params = new URLSearchParams();
+      if (userRoleFilter !== "all") params.set("role", userRoleFilter);
+
+      const res = await fetch(`/api/admin/users?${params}`);
       if (res.ok) {
-        const data = await res.json()
-        setUsers(data.users || [])
+        const data = await res.json();
+        setUsers(data.users || []);
       }
     } catch (error) {
-      console.error('Error fetching users:', error)
+      console.error("Error fetching users:", error);
     } finally {
-      setUsersLoading(false)
+      setUsersLoading(false);
     }
-  }
+  };
 
   const fetchDepartments = async () => {
-    setDepartmentsLoading(true)
+    setDepartmentsLoading(true);
     try {
-      const res = await fetch('/api/admin/departments')
+      const res = await fetch("/api/admin/departments");
       if (res.ok) {
-        const data = await res.json()
-        setDepartments(data || [])
+        const data = await res.json();
+        setDepartments(data || []);
       }
     } catch (error) {
-      console.error('Error fetching departments:', error)
+      console.error("Error fetching departments:", error);
     } finally {
-      setDepartmentsLoading(false)
+      setDepartmentsLoading(false);
     }
-  }
+  };
 
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, role: newRole })
-      })
-      
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ user_id: userId, role: newRole }),
+      });
+
       if (res.ok) {
-        await fetchUsers()
-        setSelectedUser(null)
+        await fetchUsers();
+        setSelectedUser(null);
       }
     } catch (error) {
-      console.error('Error updating user role:', error)
+      console.error("Error updating user role:", error);
     }
-  }
+  };
 
   const createDepartment = async () => {
     try {
-      const res = await fetch('/api/admin/departments', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(departmentForm)
-      })
-      
+      const res = await fetch("/api/admin/departments", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(departmentForm),
+      });
+
       if (res.ok) {
-        setDepartmentForm({ name: '', description: '' })
-        setShowDepartmentForm(false)
-        await fetchDepartments()
+        setDepartmentForm({ name: "", description: "" });
+        setShowDepartmentForm(false);
+        await fetchDepartments();
       }
     } catch (error) {
-      console.error('Error creating department:', error)
+      console.error("Error creating department:", error);
     }
-  }
+  };
 
   const performBulkOperation = async (operation: string, data: any) => {
-    if (selectedIssues.size === 0) return
-    
-    setBulkOperationLoading(true)
+    if (selectedIssues.size === 0) return;
+
+    setBulkOperationLoading(true);
     try {
-      const res = await fetch('/api/admin/issues/bulk', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+      const res = await fetch("/api/admin/issues/bulk", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           operation,
           issue_ids: Array.from(selectedIssues),
-          data
-        })
-      })
-      
+          data,
+        }),
+      });
+
       if (res.ok) {
-        await fetchIssues()
-        await fetchStats()
-        setSelectedIssues(new Set())
+        await fetchIssues();
+        await fetchStats();
+        setSelectedIssues(new Set());
       }
     } catch (error) {
-      console.error('Error performing bulk operation:', error)
+      console.error("Error performing bulk operation:", error);
     } finally {
-      setBulkOperationLoading(false)
+      setBulkOperationLoading(false);
     }
-  }
+  };
 
   if (statsLoading) {
     return (
@@ -342,21 +407,23 @@ export default function AdminDashboard() {
           <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  const categoryData = stats?.issues_by_category ? 
-    Object.entries(stats.issues_by_category).map(([category, count]) => ({
-      name: category,
-      value: count
-    })) : []
+  const categoryData = stats?.issues_by_category
+    ? Object.entries(stats.issues_by_category).map(([category, count]) => ({
+        name: category,
+        value: count,
+      }))
+    : [];
 
-  const statusData = stats?.issues_by_status ? 
-    Object.entries(stats.issues_by_status).map(([status, count]) => ({
-      name: status.replace('_', ' '),
-      value: count,
-      fill: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#6b7280'
-    })) : []
+  const statusData = stats?.issues_by_status
+    ? Object.entries(stats.issues_by_status).map(([status, count]) => ({
+        name: status.replace("_", " "),
+        value: count,
+        fill: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || "#6b7280",
+      }))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -364,39 +431,41 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Government Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage civic issues and government announcements</p>
+          <p className="text-muted-foreground">
+            Manage civic issues and government announcements
+          </p>
         </div>
-        
+
         <div className="flex gap-2">
-          <Button 
-            variant={activeTab === 'overview' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('overview')}
+          <Button
+            variant={activeTab === "overview" ? "default" : "outline"}
+            onClick={() => setActiveTab("overview")}
           >
             Overview
           </Button>
-          <Button 
-            variant={activeTab === 'issues' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('issues')}
+          <Button
+            variant={activeTab === "issues" ? "default" : "outline"}
+            onClick={() => setActiveTab("issues")}
           >
             Issues Management
           </Button>
-          <Button 
-            variant={activeTab === 'users' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('users')}
+          <Button
+            variant={activeTab === "users" ? "default" : "outline"}
+            onClick={() => setActiveTab("users")}
           >
             <Users className="h-4 w-4 mr-2" />
             Users
           </Button>
-          <Button 
-            variant={activeTab === 'departments' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('departments')}
+          <Button
+            variant={activeTab === "departments" ? "default" : "outline"}
+            onClick={() => setActiveTab("departments")}
           >
             <Building className="h-4 w-4 mr-2" />
             Departments
           </Button>
-          <Button 
-            variant={activeTab === 'announcements' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('announcements')}
+          <Button
+            variant={activeTab === "announcements" ? "default" : "outline"}
+            onClick={() => setActiveTab("announcements")}
           >
             Announcements
           </Button>
@@ -404,13 +473,15 @@ export default function AdminDashboard() {
       </div>
 
       {/* Overview Tab */}
-      {activeTab === 'overview' && stats && (
+      {activeTab === "overview" && stats && (
         <div className="space-y-6">
           {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Issues</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Issues
+                </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -418,36 +489,48 @@ export default function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">All time</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Issues</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Active Issues
+                </CardTitle>
                 <AlertTriangle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.active_issues}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.active_issues}
+                </div>
                 <p className="text-xs text-muted-foreground">Needs attention</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  In Progress
+                </CardTitle>
                 <Clock className="h-4 w-4 text-yellow-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.in_progress_issues}</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.in_progress_issues}
+                </div>
                 <p className="text-xs text-muted-foreground">Being worked on</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Flagged Priority</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Flagged Priority
+                </CardTitle>
                 <Flag className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{stats.flagged_issues}</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {stats.flagged_issues}
+                </div>
                 <p className="text-xs text-muted-foreground">High priority</p>
               </CardContent>
             </Card>
@@ -458,7 +541,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Issues by Status</CardTitle>
-                <CardDescription>Distribution of current issue statuses</CardDescription>
+                <CardDescription>
+                  Distribution of current issue statuses
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -485,7 +570,9 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Issues by Category</CardTitle>
-                <CardDescription>Most common types of reported issues</CardDescription>
+                <CardDescription>
+                  Most common types of reported issues
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -502,30 +589,39 @@ export default function AdminDashboard() {
           </div>
 
           {/* Trend Chart */}
-          {stats.recent_issues_trend && stats.recent_issues_trend.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Issues Trend (Last 30 Days)</CardTitle>
-                <CardDescription>Daily issue reporting activity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={stats.recent_issues_trend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
+          {stats.recent_issues_trend &&
+            stats.recent_issues_trend.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Issues Trend (Last 30 Days)</CardTitle>
+                  <CardDescription>
+                    Daily issue reporting activity
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={stats.recent_issues_trend}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.3}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
         </div>
       )}
 
       {/* Issues Management Tab */}
-      {activeTab === 'issues' && (
+      {activeTab === "issues" && (
         <div className="space-y-6">
           {/* Filters */}
           <Card>
@@ -541,7 +637,7 @@ export default function AdminDashboard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {STATUS_OPTIONS.map(option => (
+                      {STATUS_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -551,12 +647,15 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <Label>Category</Label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <Select
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORY_OPTIONS.map(option => (
+                      {CATEGORY_OPTIONS.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -572,26 +671,38 @@ export default function AdminDashboard() {
           {selectedIssues.size > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Bulk Operations ({selectedIssues.size} selected)</CardTitle>
+                <CardTitle>
+                  Bulk Operations ({selectedIssues.size} selected)
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2 flex-wrap">
-                  <Button 
-                    onClick={() => performBulkOperation('update_status', { status: 'under_progress' })}
+                  <Button
+                    onClick={() =>
+                      performBulkOperation("update_status", {
+                        status: "under_progress",
+                      })
+                    }
                     disabled={bulkOperationLoading}
                     size="sm"
                   >
                     Mark as In Progress
                   </Button>
-                  <Button 
-                    onClick={() => performBulkOperation('update_status', { status: 'closed' })}
+                  <Button
+                    onClick={() =>
+                      performBulkOperation("update_status", {
+                        status: "closed",
+                      })
+                    }
                     disabled={bulkOperationLoading}
                     size="sm"
                   >
                     Close Issues
                   </Button>
-                  <Button 
-                    onClick={() => performBulkOperation('flag_priority', { flagged: true })}
+                  <Button
+                    onClick={() =>
+                      performBulkOperation("flag_priority", { flagged: true })
+                    }
                     disabled={bulkOperationLoading}
                     size="sm"
                     variant="outline"
@@ -599,7 +710,7 @@ export default function AdminDashboard() {
                     <Flag className="h-4 w-4 mr-2" />
                     Flag Priority
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => setSelectedIssues(new Set())}
                     disabled={bulkOperationLoading}
                     size="sm"
@@ -618,18 +729,25 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Loading issues...</p>
+                  <p className="mt-4 text-muted-foreground">
+                    Loading issues...
+                  </p>
                 </CardContent>
               </Card>
             ) : issues.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">No issues found matching the current filters.</p>
+                  <p className="text-muted-foreground">
+                    No issues found matching the current filters.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
               issues.map((issue) => (
-                <Card key={issue.id} className={issue.flagged ? 'border-red-200' : ''}>
+                <Card
+                  key={issue.id}
+                  className={issue.flagged ? "border-red-200" : ""}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
@@ -637,61 +755,74 @@ export default function AdminDashboard() {
                           type="checkbox"
                           checked={selectedIssues.has(issue.id)}
                           onChange={(e) => {
-                            const newSelected = new Set(selectedIssues)
+                            const newSelected = new Set(selectedIssues);
                             if (e.target.checked) {
-                              newSelected.add(issue.id)
+                              newSelected.add(issue.id);
                             } else {
-                              newSelected.delete(issue.id)
+                              newSelected.delete(issue.id);
                             }
-                            setSelectedIssues(newSelected)
+                            setSelectedIssues(newSelected);
                           }}
                           className="mt-1"
                         />
                         <div className="space-y-1">
                           <CardTitle className="text-base">
-                            Issue #{issue.id} 
-                            {issue.flagged && <Flag className="inline ml-2 h-4 w-4 text-red-500" />}
+                            Issue #{issue.id}
+                            {issue.flagged && (
+                              <Flag className="inline ml-2 h-4 w-4 text-red-500" />
+                            )}
                           </CardTitle>
                           <div className="flex gap-2">
-                            <Badge 
-                              variant="secondary" 
+                            <Badge
+                              variant="secondary"
                               className={
-                                issue.status === 'active' ? 'bg-red-100 text-red-800' :
-                                issue.status === 'under_progress' ? 'bg-yellow-100 text-yellow-800' :
-                                issue.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
-                                'bg-green-100 text-green-800'
+                                issue.status === "active"
+                                  ? "bg-red-100 text-red-800"
+                                  : issue.status === "under_progress"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : issue.status === "under_review"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-green-100 text-green-800"
                               }
                             >
-                              {issue.status.replace('_', ' ')}
+                              {issue.status.replace("_", " ")}
                             </Badge>
-                            {issue.tags.map(tag => (
-                              <Badge key={tag} variant="outline">{tag}</Badge>
+                            {issue.tags.map((tag) => (
+                              <Badge key={tag} variant="outline">
+                                {tag}
+                              </Badge>
                             ))}
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right text-sm text-muted-foreground">
                         <div>{issue.vote_count?.[0]?.count || 0} votes</div>
-                        <div>{new Date(issue.created_at).toLocaleDateString()}</div>
+                        <div>
+                          {new Date(issue.created_at).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <p className="text-sm mb-3">{issue.description}</p>
-                    
+
                     {issue.assignment && (
                       <div className="text-xs text-muted-foreground mb-3">
-                        <strong>Assigned to:</strong> {issue.assignment.department.name}
-                        {issue.assignment.assignee && ` (${issue.assignment.assignee.display_name})`}
+                        <strong>Assigned to:</strong>{" "}
+                        {issue.assignment.department.name}
+                        {issue.assignment.assignee &&
+                          ` (${issue.assignment.assignee.display_name})`}
                       </div>
                     )}
-                    
+
                     <div className="flex gap-2">
-                      <Select 
-                        value={issue.status} 
-                        onValueChange={(newStatus) => updateIssueStatus(issue.id, newStatus)}
+                      <Select
+                        value={issue.status}
+                        onValueChange={(newStatus) =>
+                          updateIssueStatus(issue.id, newStatus)
+                        }
                         disabled={statusUpdateLoading}
                       >
                         <SelectTrigger className="w-48">
@@ -699,14 +830,18 @@ export default function AdminDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="under_progress">Under Progress</SelectItem>
-                          <SelectItem value="under_review">Under Review</SelectItem>
+                          <SelectItem value="under_progress">
+                            Under Progress
+                          </SelectItem>
+                          <SelectItem value="under_review">
+                            Under Review
+                          </SelectItem>
                           <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => setSelectedIssue(issue)}
                       >
@@ -723,13 +858,15 @@ export default function AdminDashboard() {
       )}
 
       {/* Announcements Tab */}
-      {activeTab === 'announcements' && (
+      {activeTab === "announcements" && (
         <div className="space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Government Announcements</CardTitle>
-                <CardDescription>Manage public announcements and notifications</CardDescription>
+                <CardDescription>
+                  Manage public announcements and notifications
+                </CardDescription>
               </div>
               <Button onClick={() => setShowAnnouncementForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -747,29 +884,44 @@ export default function AdminDashboard() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Title</Label>
-                  <Input 
+                  <Input
                     value={announcementForm.title}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) =>
+                      setAnnouncementForm((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
                     placeholder="Announcement title..."
                   />
                 </div>
-                
+
                 <div>
                   <Label>Content</Label>
-                  <Textarea 
+                  <Textarea
                     value={announcementForm.content}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) =>
+                      setAnnouncementForm((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
                     placeholder="Announcement content..."
                     rows={4}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Type</Label>
-                    <Select 
+                    <Select
                       value={announcementForm.type}
-                      onValueChange={(value) => setAnnouncementForm(prev => ({ ...prev, type: value }))}
+                      onValueChange={(value) =>
+                        setAnnouncementForm((prev) => ({
+                          ...prev,
+                          type: value,
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -782,12 +934,17 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <Label>Priority</Label>
-                    <Select 
+                    <Select
                       value={announcementForm.priority}
-                      onValueChange={(value) => setAnnouncementForm(prev => ({ ...prev, priority: value }))}
+                      onValueChange={(value) =>
+                        setAnnouncementForm((prev) => ({
+                          ...prev,
+                          priority: value,
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -801,13 +958,16 @@ export default function AdminDashboard() {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button onClick={createAnnouncement}>
                     <Megaphone className="h-4 w-4 mr-2" />
                     Create Announcement
                   </Button>
-                  <Button variant="outline" onClick={() => setShowAnnouncementForm(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAnnouncementForm(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -822,13 +982,18 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-base">{announcement.title}</CardTitle>
+                      <CardTitle className="text-base">
+                        {announcement.title}
+                      </CardTitle>
                       <div className="flex gap-2 mt-2">
                         <Badge variant="secondary">{announcement.type}</Badge>
-                        <Badge 
+                        <Badge
                           variant={
-                            announcement.priority === 'urgent' ? 'destructive' :
-                            announcement.priority === 'high' ? 'default' : 'secondary'
+                            announcement.priority === "urgent"
+                              ? "destructive"
+                              : announcement.priority === "high"
+                              ? "default"
+                              : "secondary"
                           }
                         >
                           {announcement.priority}
@@ -850,7 +1015,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Users Management Tab */}
-      {activeTab === 'users' && (
+      {activeTab === "users" && (
         <div className="space-y-6">
           {/* User Filters */}
           <Card>
@@ -862,7 +1027,10 @@ export default function AdminDashboard() {
               <div className="flex gap-4 items-center">
                 <div>
                   <Label>Role Filter</Label>
-                  <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                  <Select
+                    value={userRoleFilter}
+                    onValueChange={setUserRoleFilter}
+                  >
                     <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
@@ -900,13 +1068,16 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-base">
-                          {user.display_name || 'Unknown User'}
+                          {user.display_name || "Unknown User"}
                         </CardTitle>
                         <div className="flex gap-2 mt-2">
-                          <Badge 
+                          <Badge
                             variant={
-                              user.role === 'admin' ? 'destructive' :
-                              user.role === 'official' ? 'default' : 'secondary'
+                              user.role === "admin"
+                                ? "destructive"
+                                : user.role === "official"
+                                ? "default"
+                                : "secondary"
                             }
                           >
                             {user.role}
@@ -919,18 +1090,23 @@ export default function AdminDashboard() {
                           </Badge>
                         </div>
                       </div>
-                      
+
                       <div className="text-right text-sm text-muted-foreground">
-                        <div>Joined {new Date(user.created_at).toLocaleDateString()}</div>
+                        <div>
+                          Joined{" "}
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="flex gap-2">
-                      <Select 
-                        value={user.role} 
-                        onValueChange={(newRole) => updateUserRole(user.id, newRole)}
+                      <Select
+                        value={user.role}
+                        onValueChange={(newRole) =>
+                          updateUserRole(user.id, newRole)
+                        }
                       >
                         <SelectTrigger className="w-48">
                           <SelectValue />
@@ -941,9 +1117,9 @@ export default function AdminDashboard() {
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => setSelectedUser(user)}
                       >
@@ -960,13 +1136,15 @@ export default function AdminDashboard() {
       )}
 
       {/* Departments Management Tab */}
-      {activeTab === 'departments' && (
+      {activeTab === "departments" && (
         <div className="space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Department Management</CardTitle>
-                <CardDescription>Manage government departments and their assignments</CardDescription>
+                <CardDescription>
+                  Manage government departments and their assignments
+                </CardDescription>
               </div>
               <Button onClick={() => setShowDepartmentForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -984,29 +1162,42 @@ export default function AdminDashboard() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Department Name</Label>
-                  <Input 
+                  <Input
                     value={departmentForm.name}
-                    onChange={(e) => setDepartmentForm(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setDepartmentForm((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
                     placeholder="Department name..."
                   />
                 </div>
-                
+
                 <div>
                   <Label>Description</Label>
-                  <Textarea 
+                  <Textarea
                     value={departmentForm.description}
-                    onChange={(e) => setDepartmentForm(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setDepartmentForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     placeholder="Department description..."
                     rows={3}
                   />
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button onClick={createDepartment}>
                     <Building className="h-4 w-4 mr-2" />
                     Create Department
                   </Button>
-                  <Button variant="outline" onClick={() => setShowDepartmentForm(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDepartmentForm(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -1020,7 +1211,9 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Loading departments...</p>
+                  <p className="mt-4 text-muted-foreground">
+                    Loading departments...
+                  </p>
                 </CardContent>
               </Card>
             ) : departments.length === 0 ? (
@@ -1035,9 +1228,11 @@ export default function AdminDashboard() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-base">{department.name}</CardTitle>
+                        <CardTitle className="text-base">
+                          {department.name}
+                        </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {department.description || 'No description'}
+                          {department.description || "No description"}
                         </p>
                         <div className="flex gap-2 mt-2">
                           <Badge variant="outline">
@@ -1053,19 +1248,19 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => setSelectedDepartment(department)}
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => setSelectedDepartment(department)}
                       >
@@ -1081,5 +1276,5 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
-  )
+  );
 }

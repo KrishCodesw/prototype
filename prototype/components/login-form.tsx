@@ -152,6 +152,15 @@ export function LoginForm({
                 Sign up
               </Link>
             </div>
+            <div className="mt-4 text-center text-sm">
+              Go back to the{" "}
+              <Link
+                href="/"
+                className="underline underline-offset-4"
+              >
+                Home Page
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -2,25 +2,16 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
-// Simple Turnstile verification helper
-async function verifyTurnstile(token?: string) {
-  const secret = process.env.TURNSTILE_SECRET_KEY
-  if (!secret) return true // allow during local dev if not configured
-  if (!token) return false
-  try {
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ secret, response: token }),
-    })
-    const data = await res.json()
-    return !!data.success
-  } catch {
-    return false
-  }
-}
 
 export async function POST(req: Request) {
+  const supabase = await createClient()
+  
+  // Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const admin = createAdminClient()
 
   const body = await req.json().catch(() => null)
@@ -34,7 +25,6 @@ export async function POST(req: Request) {
     longitude,
     images = [],
     reporterEmail,
-    turnstileToken,
   } = body
 
   if (
@@ -45,14 +35,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing or invalid fields' }, { status: 400 })
   }
 
-  // Verify Turnstile for anonymous submissions
-  const ok = await verifyTurnstile(turnstileToken)
-  if (!ok) return NextResponse.json({ error: 'Bot verification failed' }, { status: 400 })
-
   // Insert issue
   const { data: issue, error } = await admin
     .from('issues')
-    .insert([{ description, flagged, tags, latitude, longitude, reporter_email: reporterEmail ?? null }])
+    .insert([{ description, flagged, tags, latitude, longitude, reporter_email: user.email }])
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })

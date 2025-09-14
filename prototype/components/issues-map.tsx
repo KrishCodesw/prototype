@@ -5,7 +5,15 @@ import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Expand, Shrink, ChevronUp, ChevronDown, RefreshCw, AlertCircle } from "lucide-react";
+import {
+  MapPin,
+  Expand,
+  Shrink,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
+  AlertCircle,
+} from "lucide-react";
 
 // 👇 Dynamically import LeafletMap without SSR
 const LeafletMap = dynamic(() => import("./LeafletMap"), { ssr: false });
@@ -35,40 +43,38 @@ export default function IssuesMap({ className }: { className?: string }) {
   const [L, setLeaflet] = useState<any>(null); // store leaflet
 
   useEffect(() => {
-    // Load issues
-    const loadIssues = async () => {
-      try {
-        const res = await fetch("/api/issues?limit=100")
-        if (!res.ok) {
-          throw new Error('Failed to fetch issues')
-        }
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          setIssues(data);
-        } else if (Array.isArray(data.issues)) {
-          // if backend wraps it like { issues: [...] }
-          setIssues(data.issues);
-        } else {
-          console.error("Unexpected API response:", data);
-          setIssues([]);
-        }
-      } catch (err) {
-        console.error('Error loading issues:', err)
-        setError('Failed to load issues. Please try refreshing the page.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    loadIssues()
-
-    // Get user location
+    // Get user location first
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
         () => setUserLocation([28.6139, 77.209]) // fallback
       );
     }
+
+    // Load issues
+    const loadIssues = async () => {
+      try {
+        const res = await fetch("/api/issues?limit=100");
+        if (!res.ok) {
+          throw new Error("Failed to fetch issues");
+        }
+        const data = await res.json();
+        const fetchedIssues = Array.isArray(data)
+          ? data
+          : Array.isArray(data.issues)
+          ? data.issues
+          : [];
+        setIssues(fetchedIssues);
+      } catch (err) {
+        console.error("Error loading issues:", err);
+        setError("Failed to load issues. Please try refreshing the page.");
+        setIssues([]); // Ensure issues array is empty on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadIssues();
 
     // Load leaflet only on client
     import("leaflet").then((leaflet) => setLeaflet(leaflet));
@@ -122,7 +128,7 @@ export default function IssuesMap({ className }: { className?: string }) {
       </Card>
     );
   }
-  
+
   if (error) {
     return (
       <Card className={`${className} border-red-200 bg-red-50/50`}>
@@ -147,9 +153,11 @@ export default function IssuesMap({ className }: { className?: string }) {
   }
 
   return (
-    <Card className={`${className} transition-all duration-300 ${
-      isExpanded ? 'fixed inset-4 z-50 shadow-2xl' : ''
-    }`}>
+    <Card
+      className={`${className} transition-all duration-300 ${
+        isExpanded ? "fixed inset-4 z-50 shadow-2xl" : ""
+      }`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -166,7 +174,11 @@ export default function IssuesMap({ className }: { className?: string }) {
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="md:hidden"
             >
-              {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -174,24 +186,30 @@ export default function IssuesMap({ className }: { className?: string }) {
               onClick={() => setIsExpanded(!isExpanded)}
               className="hidden md:flex"
             >
-              {isExpanded ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+              {isExpanded ? (
+                <Shrink className="h-4 w-4" />
+              ) : (
+                <Expand className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
       </CardHeader>
-      
+
       {!isCollapsed && (
         <CardContent className="p-0">
-          <div className={`${
-            isExpanded ? 'h-[calc(100vh-200px)]' : 'h-48 md:h-64'
-          } transition-all duration-300`}>
+          <div
+            className={`${
+              isExpanded ? "h-[calc(100vh-200px)]" : "h-48 md:h-64"
+            } transition-all duration-300`}
+          >
             <LeafletMap
               issues={issues}
               mapCenter={mapCenter}
               createCustomIcon={createCustomIcon}
             />
           </div>
-          
+
           {isExpanded && (
             <div className="p-4 border-t bg-muted/50">
               <div className="flex items-center justify-between text-sm">

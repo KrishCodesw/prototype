@@ -242,7 +242,7 @@ async function bulkRemoveTags(supabase: any, issueIds: number[], tagsToRemove: s
 
       // Remove specified tags
       const currentTags = issue.tags || []
-      const filteredTags = currentTags.filter(tag => !tagsToRemove.includes(tag))
+const filteredTags = currentTags.filter((tag: string) => !tagsToRemove.includes(tag as string));
 
       // Update with filtered tags
       const { error: updateError } = await supabase
