@@ -3,11 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const id = Number(params.id)
+    const { id: idParam } = await params
+    const id = Number(idParam)
     
     if (!Number.isFinite(id)) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 })

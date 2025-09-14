@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 
 // Simple Turnstile verification helper
 async function verifyTurnstile(token?: string) {
@@ -89,10 +89,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '50')
   const statusFilter = searchParams.get('status')
   
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!,
-  )
+  const supabase = await createClient()
   
   try {
     let query = supabase

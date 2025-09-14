@@ -8,10 +8,7 @@ import { EnvVarWarning } from "@/components/env-var-warning";
 import { hasEnvVars } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Home, MapPin, FileText, User } from "lucide-react";
-
-interface NavigationProps {
-  user?: any | null;
-}
+// import { User as AuthUser } from "@supabase/supabase-js";
 
 const navigationLinks = [
   {
@@ -36,6 +33,10 @@ const navigationLinks = [
     authRequired: true,
   },
 ];
+
+interface NavigationProps {
+  user?: any | null;
+}
 
 export function Navigation({ user }: NavigationProps) {
   const pathname = usePathname();
@@ -69,11 +70,11 @@ export function Navigation({ user }: NavigationProps) {
                 >
                   <Icon className="h-4 w-4" />
                   {link.label}
-                  {link.authRequired && (
+                  {/* {link.authRequired && (
                     <Badge variant="outline" className="text-xs ml-1">
                       Auth
                     </Badge>
-                  )}
+                  )} */}
                 </Link>
               );
             })}
