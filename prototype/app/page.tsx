@@ -1,6 +1,7 @@
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
 import IssuesMap from "@/components/issues-map";
+import { DebugTest } from "@/components/debug-test";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,6 +38,9 @@ export default async function Home() {
               </Link>
             </div>
           </div>
+
+          {/* Debug Test */}
+          <DebugTest />
 
           {/* Map Section */}
           <div className="w-full">
