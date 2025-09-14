@@ -15,7 +15,9 @@ import {
 } from 'recharts'
 import { 
   TrendingUp, AlertTriangle, CheckCircle, Clock, Users, 
-  Flag, MessageSquare, Settings, FileText, Plus, Megaphone
+  Flag, MessageSquare, Settings, FileText, Plus, Megaphone,
+  UserCheck, Building, CheckSquare, Edit, Trash2, Eye, Search,
+  Filter, Download, MoreHorizontal, Shield, AlertCircle
 } from 'lucide-react'
 
 type AdminStats = {
@@ -46,6 +48,27 @@ type Issue = {
     assignee: { display_name: string }
     notes: string
   }
+}
+
+type User = {
+  id: string
+  display_name: string
+  role: string
+  department_id: number | null
+  created_at: string
+  issues_count: number
+  votes_count: number
+  announcements_count: number
+}
+
+type Department = {
+  id: number
+  name: string
+  description?: string
+  issues_count: number
+  officials_count: number
+  regions_count: number
+  assignments_count: number
 }
 
 const STATUS_COLORS = {
@@ -82,7 +105,26 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [statsLoading, setStatsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'issues' | 'announcements'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'issues' | 'announcements' | 'users' | 'departments'>('overview')
+  
+  // New state for users and departments
+  const [users, setUsers] = useState<User[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [departmentsLoading, setDepartmentsLoading] = useState(false)
+  
+  // Bulk operations
+  const [selectedIssues, setSelectedIssues] = useState<Set<number>>(new Set())
+  const [bulkOperationLoading, setBulkOperationLoading] = useState(false)
+  
+  // User management
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [userRoleFilter, setUserRoleFilter] = useState('all')
+  
+  // Department management
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null)
+  const [showDepartmentForm, setShowDepartmentForm] = useState(false)
+  const [departmentForm, setDepartmentForm] = useState({ name: '', description: '' })
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('all')
@@ -105,7 +147,13 @@ export default function AdminDashboard() {
     fetchStats()
     fetchIssues()
     fetchAnnouncements()
-  }, [statusFilter, categoryFilter])
+    if (activeTab === 'users') {
+      fetchUsers()
+    }
+    if (activeTab === 'departments') {
+      fetchDepartments()
+    }
+  }, [statusFilter, categoryFilter, activeTab, userRoleFilter])
 
   const fetchStats = async () => {
     try {
@@ -190,6 +238,102 @@ export default function AdminDashboard() {
     }
   }
 
+  // New fetch functions
+  const fetchUsers = async () => {
+    setUsersLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (userRoleFilter !== 'all') params.set('role', userRoleFilter)
+      
+      const res = await fetch(`/api/admin/users?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data.users || [])
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true)
+    try {
+      const res = await fetch('/api/admin/departments')
+      if (res.ok) {
+        const data = await res.json()
+        setDepartments(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+    } finally {
+      setDepartmentsLoading(false)
+    }
+  }
+
+  const updateUserRole = async (userId: string, newRole: string) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, role: newRole })
+      })
+      
+      if (res.ok) {
+        await fetchUsers()
+        setSelectedUser(null)
+      }
+    } catch (error) {
+      console.error('Error updating user role:', error)
+    }
+  }
+
+  const createDepartment = async () => {
+    try {
+      const res = await fetch('/api/admin/departments', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(departmentForm)
+      })
+      
+      if (res.ok) {
+        setDepartmentForm({ name: '', description: '' })
+        setShowDepartmentForm(false)
+        await fetchDepartments()
+      }
+    } catch (error) {
+      console.error('Error creating department:', error)
+    }
+  }
+
+  const performBulkOperation = async (operation: string, data: any) => {
+    if (selectedIssues.size === 0) return
+    
+    setBulkOperationLoading(true)
+    try {
+      const res = await fetch('/api/admin/issues/bulk', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          operation,
+          issue_ids: Array.from(selectedIssues),
+          data
+        })
+      })
+      
+      if (res.ok) {
+        await fetchIssues()
+        await fetchStats()
+        setSelectedIssues(new Set())
+      }
+    } catch (error) {
+      console.error('Error performing bulk operation:', error)
+    } finally {
+      setBulkOperationLoading(false)
+    }
+  }
+
   if (statsLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -235,6 +379,20 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('issues')}
           >
             Issues Management
+          </Button>
+          <Button 
+            variant={activeTab === 'users' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('users')}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Users
+          </Button>
+          <Button 
+            variant={activeTab === 'departments' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('departments')}
+          >
+            <Building className="h-4 w-4 mr-2" />
+            Departments
           </Button>
           <Button 
             variant={activeTab === 'announcements' ? 'default' : 'outline'}
@@ -410,6 +568,50 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
+          {/* Bulk Operations */}
+          {selectedIssues.size > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bulk Operations ({selectedIssues.size} selected)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2 flex-wrap">
+                  <Button 
+                    onClick={() => performBulkOperation('update_status', { status: 'under_progress' })}
+                    disabled={bulkOperationLoading}
+                    size="sm"
+                  >
+                    Mark as In Progress
+                  </Button>
+                  <Button 
+                    onClick={() => performBulkOperation('update_status', { status: 'closed' })}
+                    disabled={bulkOperationLoading}
+                    size="sm"
+                  >
+                    Close Issues
+                  </Button>
+                  <Button 
+                    onClick={() => performBulkOperation('flag_priority', { flagged: true })}
+                    disabled={bulkOperationLoading}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    Flag Priority
+                  </Button>
+                  <Button 
+                    onClick={() => setSelectedIssues(new Set())}
+                    disabled={bulkOperationLoading}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Issues List */}
           <div className="space-y-4">
             {loading ? (
@@ -430,31 +632,47 @@ export default function AdminDashboard() {
                 <Card key={issue.id} className={issue.flagged ? 'border-red-200' : ''}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <CardTitle className="text-base">
-                          Issue #{issue.id} 
-                          {issue.flagged && <Flag className="inline ml-2 h-4 w-4 text-red-500" />}
-                        </CardTitle>
-                        <div className="flex gap-2">
-                          <Badge 
-                            variant="secondary" 
-                            className={
-                              issue.status === 'active' ? 'bg-red-100 text-red-800' :
-                              issue.status === 'under_progress' ? 'bg-yellow-100 text-yellow-800' :
-                              issue.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
-                              'bg-green-100 text-green-800'
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIssues.has(issue.id)}
+                          onChange={(e) => {
+                            const newSelected = new Set(selectedIssues)
+                            if (e.target.checked) {
+                              newSelected.add(issue.id)
+                            } else {
+                              newSelected.delete(issue.id)
                             }
-                          >
-                            {issue.status.replace('_', ' ')}
-                          </Badge>
-                          {issue.tags.map(tag => (
-                            <Badge key={tag} variant="outline">{tag}</Badge>
-                          ))}
+                            setSelectedIssues(newSelected)
+                          }}
+                          className="mt-1"
+                        />
+                        <div className="space-y-1">
+                          <CardTitle className="text-base">
+                            Issue #{issue.id} 
+                            {issue.flagged && <Flag className="inline ml-2 h-4 w-4 text-red-500" />}
+                          </CardTitle>
+                          <div className="flex gap-2">
+                            <Badge 
+                              variant="secondary" 
+                              className={
+                                issue.status === 'active' ? 'bg-red-100 text-red-800' :
+                                issue.status === 'under_progress' ? 'bg-yellow-100 text-yellow-800' :
+                                issue.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'
+                              }
+                            >
+                              {issue.status.replace('_', ' ')}
+                            </Badge>
+                            {issue.tags.map(tag => (
+                              <Badge key={tag} variant="outline">{tag}</Badge>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       
                       <div className="text-right text-sm text-muted-foreground">
-                        <div>{issue.vote_count || 0} votes</div>
+                        <div>{issue.vote_count?.[0]?.count || 0} votes</div>
                         <div>{new Date(issue.created_at).toLocaleDateString()}</div>
                       </div>
                     </div>
@@ -627,6 +845,238 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Users Management Tab */}
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          {/* User Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage user accounts and roles</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 items-center">
+                <div>
+                  <Label>Role Filter</Label>
+                  <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="citizen">Citizens</SelectItem>
+                      <SelectItem value="official">Officials</SelectItem>
+                      <SelectItem value="admin">Admins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Users List */}
+          <div className="space-y-4">
+            {usersLoading ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="mt-4 text-muted-foreground">Loading users...</p>
+                </CardContent>
+              </Card>
+            ) : users.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">No users found.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              users.map((user) => (
+                <Card key={user.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">
+                          {user.display_name || 'Unknown User'}
+                        </CardTitle>
+                        <div className="flex gap-2 mt-2">
+                          <Badge 
+                            variant={
+                              user.role === 'admin' ? 'destructive' :
+                              user.role === 'official' ? 'default' : 'secondary'
+                            }
+                          >
+                            {user.role}
+                          </Badge>
+                          <Badge variant="outline">
+                            {user.issues_count} issues
+                          </Badge>
+                          <Badge variant="outline">
+                            {user.votes_count} votes
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right text-sm text-muted-foreground">
+                        <div>Joined {new Date(user.created_at).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Select 
+                        value={user.role} 
+                        onValueChange={(newRole) => updateUserRole(user.id, newRole)}
+                      >
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="citizen">Citizen</SelectItem>
+                          <SelectItem value="official">Official</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedUser(user)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Departments Management Tab */}
+      {activeTab === 'departments' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Department Management</CardTitle>
+                <CardDescription>Manage government departments and their assignments</CardDescription>
+              </div>
+              <Button onClick={() => setShowDepartmentForm(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Department
+              </Button>
+            </CardHeader>
+          </Card>
+
+          {/* Department Form */}
+          {showDepartmentForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Department</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Department Name</Label>
+                  <Input 
+                    value={departmentForm.name}
+                    onChange={(e) => setDepartmentForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Department name..."
+                  />
+                </div>
+                
+                <div>
+                  <Label>Description</Label>
+                  <Textarea 
+                    value={departmentForm.description}
+                    onChange={(e) => setDepartmentForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Department description..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button onClick={createDepartment}>
+                    <Building className="h-4 w-4 mr-2" />
+                    Create Department
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowDepartmentForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Departments List */}
+          <div className="space-y-4">
+            {departmentsLoading ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                  <p className="mt-4 text-muted-foreground">Loading departments...</p>
+                </CardContent>
+              </Card>
+            ) : departments.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground">No departments found.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              departments.map((department) => (
+                <Card key={department.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base">{department.name}</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {department.description || 'No description'}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">
+                            {department.officials_count} officials
+                          </Badge>
+                          <Badge variant="outline">
+                            {department.assignments_count} assignments
+                          </Badge>
+                          <Badge variant="outline">
+                            {department.regions_count} regions
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedDepartment(department)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedDepartment(department)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       )}

@@ -35,7 +35,6 @@ export async function GET(request: Request) {
         vote_count:votes(count),
         assignment:assignments(
           department:departments(name),
-          assignee:profiles(display_name),
           assigned_at,
           notes
         )

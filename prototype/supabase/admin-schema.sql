@@ -1,6 +1,9 @@
 -- Additional tables and functions for admin portal
 -- Run this after the main schema
 
+-- Add description field to departments
+alter table public.departments add column if not exists description text;
+
 -- Government Announcements table
 create table if not exists public.announcements (
   id bigserial primary key,

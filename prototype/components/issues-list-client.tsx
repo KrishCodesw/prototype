@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { IssueCard } from './issue-card'
+import AnnouncementsSection from './announcements-section'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -182,6 +183,9 @@ export default function IssuesListClient() {
 
   return (
     <div className="space-y-6">
+      {/* Government Announcements */}
+      <AnnouncementsSection />
+      
       {/* Header */}
       <Card>
         <CardHeader>
