@@ -78,12 +78,38 @@ export function ReportForm() {
     if (!videoRef.current) return
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device')
+      }
+      
+      // Request camera access with proper constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      })
+      
       videoRef.current.srcObject = stream
       setCameraActive(true)
-    } catch (err) {
+      setError(null) // Clear any previous errors
+    } catch (err: any) {
       console.error('Error accessing camera:', err)
-      setError('Could not access camera. Please try uploading an image instead.')
+      let errorMessage = 'Could not access camera. Please try uploading an image instead.'
+      
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Camera access denied. Please allow camera access and try again.'
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device.'
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage = 'Camera not supported on this device.'
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application.'
+      }
+      
+      setError(errorMessage)
     }
   }
   
@@ -194,19 +220,19 @@ export function ReportForm() {
 
       {/* Nearby Issues Warning */}
       {nearbyIssues.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950">
           <CardHeader>
-            <CardTitle className="text-sm text-orange-800">⚠️ Similar Issues Nearby</CardTitle>
-            <CardDescription className="text-orange-700">
+            <CardTitle className="text-sm text-orange-800 dark:text-orange-200">⚠️ Similar Issues Nearby</CardTitle>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
               {nearbyIssues.length} issue(s) found nearby. Please check if your issue is already reported.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {nearbyIssues.slice(0, 3).map((issue) => (
-                <div key={issue.id} className="p-2 bg-white rounded border">
-                  <p className="text-xs text-gray-600">#{issue.id}</p>
-                  <p className="text-sm">{issue.description?.substring(0, 100)}...</p>
+                <div key={issue.id} className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">#{issue.id}</p>
+                  <p className="text-sm text-gray-900 dark:text-gray-100">{issue.description?.substring(0, 100)}...</p>
                 </div>
               ))}
             </div>
@@ -265,14 +291,14 @@ export function ReportForm() {
           {/* Image Capture */}
           <div className="space-y-2">
             <Label>Photo Evidence</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
               {capturedImage ? (
                 <div className="relative">
                   <img src={capturedImage} alt="Captured" className="max-w-full h-48 object-cover rounded" />
                   <Button
                     variant="outline"
                     size="sm"
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 bg-white dark:bg-gray-800"
                     onClick={() => {
                       setCapturedImage(null)
                       setImageUrl('')
@@ -285,7 +311,7 @@ export function ReportForm() {
                 <div className="text-center space-y-3">
                   {cameraActive ? (
                     <div className="space-y-2">
-                      <video ref={videoRef} autoPlay className="w-full h-48 object-cover rounded" />
+                      <video ref={videoRef} autoPlay playsInline className="w-full h-48 object-cover rounded" />
                       <div className="flex gap-2 justify-center">
                         <Button onClick={captureImage}>
                           <Camera className="h-4 w-4 mr-2" />
@@ -298,17 +324,20 @@ export function ReportForm() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-sm text-gray-600">Add a photo to help officials understand the issue</p>
-                      <div className="flex gap-2 justify-center">
-                        <Button onClick={startCamera} variant="outline">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Add a photo to help officials understand the issue</p>
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <Button onClick={startCamera} variant="outline" className="w-full sm:w-auto">
                           <Camera className="h-4 w-4 mr-2" />
                           Take Photo
                         </Button>
-                        <Button onClick={() => fileInputRef.current?.click()} variant="outline">
+                        <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full sm:w-auto">
                           <Upload className="h-4 w-4 mr-2" />
                           Upload
                         </Button>
                       </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Note: Camera requires HTTPS in production
+                      </p>
                     </div>
                   )}
                 </div>
