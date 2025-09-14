@@ -246,7 +246,7 @@ export function LoginForm({
       });
       if (error) throw error;
       // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
+      router.push("/");
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -258,22 +258,51 @@ export function LoginForm({
     const supabase = createClient();
     setIsOAuthLoading(true);
     setError(null);
+    
     try {
+      // Check if environment variables are set
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        throw new Error("Supabase configuration missing. Please check environment variables.");
+      }
+      
       const origin = window.location.origin;
       const redirectTo = `${origin}/auth/callback`;
-      const { error } = await supabase.auth.signInWithOAuth({
+      
+      console.log("Attempting Google OAuth with redirect:", redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
           queryParams: {
             prompt: "select_account",
+            access_type: "offline",
           },
         },
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("OAuth error:", error);
+        throw error;
+      }
+      
+      console.log("OAuth initiated successfully:", data);
       // The browser will redirect; no further action needed
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      console.error("Google login error:", error);
+      let errorMessage = "Failed to sign in with Google. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes("configuration")) {
+          errorMessage = "Google authentication is not properly configured. Please contact support.";
+        } else if (error.message.includes("network")) {
+          errorMessage = "Network error. Please check your connection and try again.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
       setIsOAuthLoading(false);
     }
   };
@@ -351,18 +380,16 @@ export function LoginForm({
               >
                 Sign up
               </Link>
-              <div className="mt-4 text-center text-sm">
-//               Go back to the{" "}
-//               <Link
+            </div>
+            <div className="mt-4 text-center text-sm">
+              Go back to the{" "}
+              <Link
                 href="/"
                 className="underline underline-offset-4"
               >
                 Home Page
               </Link>
             </div>
-            </div>
-            
-            
           </form>
         </CardContent>
       </Card>
