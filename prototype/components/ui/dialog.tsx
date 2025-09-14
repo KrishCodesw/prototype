@@ -21,7 +21,7 @@ const useDialog = () => {
 
 const Dialog = ({ children, ...props }: { children: React.ReactNode }) => {
   const [open, setOpen] = React.useState(false)
-  
+
   return (
     <DialogContext.Provider value={{ open, setOpen }}>
       {children}
@@ -34,14 +34,15 @@ const DialogTrigger = React.forwardRef<
   React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }
 >(({ className, children, asChild, ...props }, ref) => {
   const { setOpen } = useDialog()
-  
+
   const handleClick = () => {
     setOpen(true)
   }
 
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children, {
-      ...children.props,
+    // Type assertion to ensure props can be spread safely
+    return React.cloneElement(children as React.ReactElement<any>, {
+      ...(children.props as Record<string, any>),
       onClick: handleClick,
     })
   }
@@ -64,7 +65,7 @@ const DialogOverlay = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   const { setOpen } = useDialog()
-  
+
   return (
     <div
       ref={ref}
