@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
+  const supabase = await createClient() 
   const { searchParams } = new URL(request.url)
   const role = searchParams.get('role')
   const limit = parseInt(searchParams.get('limit') || '50')
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role')     
       .eq('id', user.id)
       .single()
 

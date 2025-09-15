@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const { data: issue, error } = await admin
     .from('issues')
     .insert([{ description, flagged, tags, latitude, longitude, reporter_email: user.email }])
-    .select()
+    .select('*, departments(*)')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
@@ -84,6 +84,7 @@ export async function GET(request: Request) {
         *,
         images:issue_images(url),
         votes(count),
+        department:departments(*),
         status_changes:status_history(
           from_status,
           to_status,

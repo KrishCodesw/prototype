@@ -32,20 +32,24 @@ type Issue = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-red-100 text-red-800",
-  under_progress: "bg-yellow-100 text-yellow-800",
-  under_review: "bg-blue-100 text-blue-800",
-  closed: "bg-green-100 text-green-800",
+  active: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400",
+  under_progress:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400",
+  under_review: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400",
+  closed: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  pothole: "bg-red-100 text-red-800",
-  streetlight: "bg-yellow-100 text-yellow-800",
-  sanitation: "bg-green-100 text-green-800",
-  water: "bg-blue-100 text-blue-800",
-  traffic: "bg-orange-100 text-orange-800",
-  park: "bg-emerald-100 text-emerald-800",
-  other: "bg-gray-100 text-gray-800",
+  pothole: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400",
+  streetlight:
+    "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400",
+  sanitation:
+    "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-400",
+  water: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-400",
+  traffic:
+    "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-400",
+  park: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400",
+  other: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-400",
 };
 
 export function IssueCard({
@@ -59,8 +63,9 @@ export function IssueCard({
 }) {
   const getLatestStatusChange = (issue: Issue): StatusChange | null => {
     if (!issue.status_changes || issue.status_changes.length === 0) return null;
-    return issue.status_changes.sort((a, b) => 
-      new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
+    return issue.status_changes.sort(
+      (a, b) =>
+        new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime()
     )[0];
   };
 
@@ -100,20 +105,24 @@ export function IssueCard({
 
   return (
     <Card
-      className={`hover:shadow-lg transition-all duration-200 hover:scale-[1.02] ${
-        issue.flagged ? "border-red-200 bg-red-50/50" : ""
+      className={`hover:shadow-lg transition-all duration-200 hover:scale-[1.02] dark:bg-gray-900 dark:hover:bg-gray-800 dark:border-gray-700 ${
+        issue.flagged
+          ? "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950"
+          : ""
       }`}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-mono text-muted-foreground">
+              <span className="text-sm font-mono text-muted-foreground dark:text-gray-400">
                 #{issue.id}
               </span>
-              {issue.flagged && <Flag className="h-4 w-4 text-red-500" />}
+              {issue.flagged && (
+                <Flag className="h-4 w-4 text-red-500 dark:text-red-400" />
+              )}
               {showDistance && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="text-xs text-muted-foreground dark:text-gray-400 flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
                   {showDistance.toFixed(1)}km away
                 </span>
@@ -122,7 +131,8 @@ export function IssueCard({
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 className={
-                  STATUS_COLORS[issue.status] || "bg-gray-100 text-gray-800"
+                  STATUS_COLORS[issue.status] ||
+                  "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-400"
                 }
               >
                 {issue.status.replace("_", " ")}
@@ -131,9 +141,10 @@ export function IssueCard({
                 <Badge
                   key={tag}
                   variant="outline"
-                  className={
-                    CATEGORY_COLORS[tag] || "bg-gray-100 text-gray-800"
-                  }
+                  className={`border-gray-200 dark:border-gray-700 ${
+                    CATEGORY_COLORS[tag] ||
+                    "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-400"
+                  }`}
                 >
                   {tag}
                 </Badge>
@@ -147,7 +158,7 @@ export function IssueCard({
               variant={hasUpvoted ? "default" : "outline"}
               onClick={handleUpvote}
               disabled={upvoting || hasUpvoted}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800 dark:bg-gray-900"
             >
               <ThumbsUp
                 className={`h-4 w-4 ${hasUpvoted ? "fill-current" : ""}`}
@@ -159,7 +170,9 @@ export function IssueCard({
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <p className="text-sm leading-relaxed">{issue.description}</p>
+        <p className="text-sm leading-relaxed dark:text-gray-300">
+          {issue.description}
+        </p>
 
         {issue.image_url && (
           <div className="rounded-lg overflow-hidden">
@@ -175,29 +188,27 @@ export function IssueCard({
 
         {/* Latest status change */}
         {latestStatusChange && (
-          <div className="bg-muted/50 p-2 rounded-md text-xs">
+          <div className="bg-muted/50 dark:bg-gray-800 p-2 rounded-md text-xs dark:text-gray-400">
             <div className="flex items-center gap-2">
               <User className="h-3 w-3" />
               <span>
-                <span className="font-medium">{latestStatusChange.profiles?.display_name || 'Official'}</span> updated status to
-                {' '}<span className="font-medium">{latestStatusChange.to_status.replace('_', ' ')}</span>
+                <span className="font-medium">
+                  {latestStatusChange.profiles?.display_name || "Official"}
+                </span>{" "}
+                updated status to{" "}
+                <span className="font-medium">
+                  {latestStatusChange.to_status.replace("_", " ")}
+                </span>
               </span>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+        <div className="flex items-center justify-between text-xs text-muted-foreground dark:text-gray-400 pt-2 border-t dark:border-gray-700">
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {formatTimeAgo(issue.created_at)}
           </div>
-
-          {/* <Link href={`/issues/${issue.id}`}>
-            <Button variant="ghost" size="sm" className="h-auto p-1 text-xs">
-              <Eye className="h-3 w-3 mr-1" />
-              View Details
-            </Button>
-          </Link> */}
         </div>
       </CardContent>
     </Card>
