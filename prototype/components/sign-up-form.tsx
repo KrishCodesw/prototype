@@ -25,6 +25,8 @@ export function SignUpForm({
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -39,20 +41,66 @@ export function SignUpForm({
       return;
     }
 
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
+      
       if (error) throw error;
-      router.push("/auth/login");
+      
+      if (data.user && !data.user.email_confirmed_at) {
+        setSuccess(true);
+        setError("Please check your email and click the confirmation link to complete your registration.");
+      } else {
+        router.push("/");
+      }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    const supabase = createClient();
+    setIsOAuthLoading(true);
+    setError(null);
+    
+    try {
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/auth/callback`;
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: {
+            prompt: "select_account",
+            access_type: "offline",
+          },
+        },
+      });
+      
+      if (error) {
+        console.error("OAuth error:", error);
+        throw error;
+      }
+      
+      console.log("OAuth initiated successfully:", data);
+    } catch (error: unknown) {
+      console.error("Google signup error:", error);
+      setError(error instanceof Error ? error.message : "Failed to sign up with Google");
+      setIsOAuthLoading(false);
     }
   };
 
@@ -101,15 +149,47 @@ export function SignUpForm({
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating an account..." : "Sign up"}
+              {error && (
+                <p className={`text-sm ${success ? "text-green-600" : "text-red-500"}`}>
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="w-full" disabled={isLoading || success}>
+                {isLoading ? "Creating an account..." : success ? "Check your email" : "Sign up"}
+              </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignUp}
+                disabled={isOAuthLoading || success}
+              >
+                {isOAuthLoading ? "Redirecting..." : "Continue with Google"}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
               Already have an account?{" "}
               <Link href="/auth/login" className="underline underline-offset-4">
                 Login
+              </Link>
+            </div>
+            <div className="mt-4 text-center text-sm">
+              Go back to the{" "}
+              <Link
+                href="/"
+                className="underline underline-offset-4"
+              >
+                Home Page
               </Link>
             </div>
           </form>

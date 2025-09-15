@@ -52,22 +52,22 @@ const ThemeSwitcher = () => {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-content" align="start">
+      <DropdownMenuContent className="w-40" align="end">
         <DropdownMenuRadioGroup
           value={theme}
           onValueChange={(e) => setTheme(e)}
         >
-          <DropdownMenuRadioItem className="flex gap-2" value="light">
-            <Sun size={ICON_SIZE} className="text-muted-foreground" />{" "}
-            <span>Light</span>
+          <DropdownMenuRadioItem className="flex gap-2 cursor-pointer" value="light">
+            <Sun size={ICON_SIZE} className="text-foreground" />
+            <span className="text-foreground">Light</span>
           </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem className="flex gap-2" value="dark">
-            <Moon size={ICON_SIZE} className="text-muted-foreground" />{" "}
-            <span>Dark</span>
+          <DropdownMenuRadioItem className="flex gap-2 cursor-pointer" value="dark">
+            <Moon size={ICON_SIZE} className="text-foreground" />
+            <span className="text-foreground">Dark</span>
           </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem className="flex gap-2" value="system">
-            <Laptop size={ICON_SIZE} className="text-muted-foreground" />{" "}
-            <span>System</span>
+          <DropdownMenuRadioItem className="flex gap-2 cursor-pointer" value="system">
+            <Laptop size={ICON_SIZE} className="text-foreground" />
+            <span className="text-foreground">System</span>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

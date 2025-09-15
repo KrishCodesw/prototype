@@ -111,6 +111,7 @@ export function ReportForm() {
     if (!videoRef.current) return;
 
     try {
+<<<<<<< HEAD
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
       setCameraActive(true);
@@ -119,6 +120,60 @@ export function ReportForm() {
       setError(
         "Could not access camera. Please try uploading an image instead."
       );
+=======
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported on this device')
+      }
+      
+      setError(null) // Clear any previous errors
+      
+      // Request camera access with proper constraints
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 }
+        } 
+      })
+      
+      videoRef.current.srcObject = stream
+      
+      // Wait for video to be ready
+      videoRef.current.onloadedmetadata = () => {
+        setCameraActive(true)
+      }
+      
+    } catch (err: any) {
+      console.error('Error accessing camera:', err)
+      let errorMessage = 'Could not access camera. Please try uploading an image instead.'
+      
+      if (err.name === 'NotAllowedError') {
+        errorMessage = 'Camera access denied. Please allow camera access in your browser settings and try again.'
+      } else if (err.name === 'NotFoundError') {
+        errorMessage = 'No camera found on this device. Please use the upload option instead.'
+      } else if (err.name === 'NotSupportedError') {
+        errorMessage = 'Camera not supported on this device. Please use the upload option instead.'
+      } else if (err.name === 'NotReadableError') {
+        errorMessage = 'Camera is already in use by another application. Please close other camera apps and try again.'
+      } else if (err.name === 'OverconstrainedError') {
+        errorMessage = 'Camera constraints not supported. Trying with basic settings...'
+        // Try again with basic constraints
+        try {
+          const basicStream = await navigator.mediaDevices.getUserMedia({ video: true })
+          videoRef.current.srcObject = basicStream
+          videoRef.current.onloadedmetadata = () => {
+            setCameraActive(true)
+          }
+          setError(null)
+          return
+        } catch (basicErr) {
+          errorMessage = 'Camera access failed. Please use the upload option instead.'
+        }
+      }
+      
+      setError(errorMessage)
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
     }
   };
 
@@ -235,6 +290,7 @@ export function ReportForm() {
 
       {/* Nearby Issues Warning */}
       {nearbyIssues.length > 0 && (
+<<<<<<< HEAD
         <Card className="border-orange-200 bg-orange-50 dark:border-orange-600 dark:bg-orange-950">
           <CardHeader>
             <CardTitle className="text-sm text-orange-800 dark:text-orange-200">
@@ -243,11 +299,19 @@ export function ReportForm() {
             <CardDescription className="text-orange-700 dark:text-orange-300">
               {nearbyIssues.length} issue(s) found nearby. Please check if your
               issue is already reported.
+=======
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/50">
+          <CardHeader>
+            <CardTitle className="text-sm text-orange-800 dark:text-orange-200">⚠️ Similar Issues Nearby</CardTitle>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
+              {nearbyIssues.length} issue(s) found nearby. Please check if your issue is already reported.
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {nearbyIssues.slice(0, 3).map((issue) => (
+<<<<<<< HEAD
                 <div
                   key={issue.id}
                   className="p-2 bg-white rounded border dark:bg-gray-800 dark:border-gray-700"
@@ -258,6 +322,11 @@ export function ReportForm() {
                   <p className="text-sm dark:text-white">
                     {issue.description?.substring(0, 100)}...
                   </p>
+=======
+                <div key={issue.id} className="p-2 bg-background/80 dark:bg-card rounded border border-border">
+                  <p className="text-xs text-muted-foreground">#{issue.id}</p>
+                  <p className="text-sm text-foreground">{issue.description?.substring(0, 100)}...</p>
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
                 </div>
               ))}
             </div>
@@ -325,7 +394,7 @@ export function ReportForm() {
           {/* Image Capture */}
           <div className="space-y-2">
             <Label>Photo Evidence</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
               {capturedImage ? (
                 <div className="relative">
                   <img
@@ -336,7 +405,7 @@ export function ReportForm() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="absolute top-2 right-2"
+                    className="absolute top-2 right-2 bg-white dark:bg-gray-800"
                     onClick={() => {
                       setCapturedImage(null);
                       setImageUrl("");
@@ -349,11 +418,15 @@ export function ReportForm() {
                 <div className="text-center space-y-3">
                   {cameraActive ? (
                     <div className="space-y-2">
+<<<<<<< HEAD
                       <video
                         ref={videoRef}
                         autoPlay
                         className="w-full h-48 object-cover rounded"
                       />
+=======
+                      <video ref={videoRef} autoPlay playsInline className="w-full h-48 object-cover rounded" />
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
                       <div className="flex gap-2 justify-center">
                         <Button onClick={captureImage}>
                           <Camera className="h-4 w-4 mr-2" />
@@ -366,6 +439,7 @@ export function ReportForm() {
                     </div>
                   ) : (
                     <div className="space-y-2">
+<<<<<<< HEAD
                       <p className="text-sm text-gray-600">
                         Add a photo to help officials understand the issue
                       </p>
@@ -378,10 +452,22 @@ export function ReportForm() {
                           onClick={() => fileInputRef.current?.click()}
                           variant="outline"
                         >
+=======
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Add a photo to help officials understand the issue</p>
+                      <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                        <Button onClick={startCamera} variant="outline" className="w-full sm:w-auto">
+                          <Camera className="h-4 w-4 mr-2" />
+                          Take Photo
+                        </Button>
+                        <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full sm:w-auto">
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
                           <Upload className="h-4 w-4 mr-2" />
                           Upload
                         </Button>
                       </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        Note: Camera requires HTTPS in production
+                      </p>
                     </div>
                   )}
                 </div>

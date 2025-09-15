@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ThumbsUp, MapPin, Clock, Flag, Eye, User } from "lucide-react";
 import Link from "next/link";
+import { ImageViewerDialog } from "./image-viewer-dialog";
 
 type StatusChange = {
   from_status: string | null;
@@ -175,7 +176,7 @@ export function IssueCard({
         </p>
 
         {issue.image_url && (
-          <div className="rounded-lg overflow-hidden">
+          <div className="rounded-lg overflow-hidden relative group">
             <Image
               src={issue.image_url}
               alt="Issue photo"
@@ -183,6 +184,18 @@ export function IssueCard({
               height={200}
               className="w-full h-48 object-cover"
             />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <ImageViewerDialog 
+                imageUrl={issue.image_url} 
+                issueId={issue.id}
+                description={issue.description}
+              >
+                <Button variant="secondary" size="sm" className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  View Full Image
+                </Button>
+              </ImageViewerDialog>
+            </div>
           </div>
         )}
 

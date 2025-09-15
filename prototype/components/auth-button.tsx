@@ -11,6 +11,10 @@ interface AuthButtonProps {
 export function AuthButton({ user }: AuthButtonProps) {
   return user ? (
     <div className="flex items-center gap-4">
+<<<<<<< HEAD
+=======
+     
+>>>>>>> c8a8a3ccff71207ec967b9773b5189b7a138257f
       <LogoutButton />
     </div>
   ) : (
